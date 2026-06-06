@@ -260,8 +260,104 @@ def fetch_url(url):
 
 def fetch_all_nodes():
     print("🌐 开始从【高频测速清洗池】拉取动态存活节点...")
-    # 替换为全网机器人真实连通、定时过滤死节点的优质源
     target_urls = [
         "https://raw.githubusercontent.com/w1770946466/Auto_Proxy/main/Long_term_subscription_num/v2ray.txt",
         "https://raw.githubusercontent.com/zk666222/shadowsocks/master/v2ray.txt",
-        "
+        "https://raw.githubusercontent.com/vless-node/vless/main/sub/sub_merge.txt"
+    ]
+    
+    all_nodes = []
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        results = executor.map(fetch_url, target_urls)
+        for nodes in results:
+            all_nodes.extend(nodes)
+            
+    print(f"📥 高优节点池洗炼完毕，有效捕获 {len(all_nodes)} 个节点")
+    return all_nodes
+
+def main():
+    print("🎬 启动全新优化的 三合一高动态清洗分流引擎...")
+    output_dir = "output"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    raw_nodes = fetch_all_nodes()
+    cleaned_nodes = unique_and_clean_nodes(raw_nodes)
+
+    if not cleaned_nodes:
+        cleaned_nodes = [{
+            "name": "🌐 🚀 节点池当前无可用活节点-请等待下一次构建",
+            "type": "ss",
+            "server": "127.0.0.1",
+            "port": 8388,
+            "cipher": "aes-256-gcm",
+            "password": "test"
+        }]
+
+    generate_clash_yaml(cleaned_nodes, os.path.join(output_dir, "clash.yaml"))
+    
+    raw_links = []
+    for n in cleaned_nodes:
+        if n["type"] == "ss":
+            cred = base64.b64encode(f"{n['cipher']}:{n['password']}".encode("utf-8")).decode("utf-8")
+            raw_links.append(f"ss://{cred}@{n['server']}:{n['port']}#{urllib.parse.quote(n['name'])}")
+            
+        elif n["type"] == "vmess":
+            v_json = {
+                "v": "2", 
+                "ps": n["name"], 
+                "add": n["server"], 
+                "port": str(n["port"]),
+                "id": n["uuid"], 
+                "aid": str(n["alterId"]), 
+                "scy": "auto",
+                "net": n["network"], 
+                "type": "none", 
+                "host": n.get("host", ""), 
+                "path": n.get("ws-opts", {}).get("path", "") if n.get("ws-opts") else "",
+                "tls": "tls" if n["tls"] else "",
+                "sni": n.get("sni", n["server"]),
+                "alpn": "",
+                "fp": "chrome",
+                "allowInsecure": 1
+            }
+            v_b64 = base64.b64encode(json.dumps(v_json, ensure_ascii=False).encode("utf-8")).decode("utf-8")
+            raw_links.append(f"vmess://{v_b64}")
+            
+        elif n["type"] == "vless":
+            query_map = {
+                "security": n["security"],
+                "type": n["network"],
+                "headerType": "none",
+                "fp": "chrome",
+                "allowInsecure": "1"
+            }
+            if n.get("flow"):
+                query_map["flow"] = n["flow"]
+            if n.get("pbk"):
+                query_map["pbk"] = n["pbk"]
+            if n.get("sid"):
+                query_map["sid"] = n["sid"]
+            if n.get("ws-opts") and n["ws-opts"].get("path"):
+                query_map["path"] = n["ws-opts"]["path"]
+            if n.get("host"):
+                query_map["host"] = n["host"]
+                
+            if n.get("sni"):
+                query_map["sni"] = n["sni"]
+            elif n["tls"]:
+                query_map["sni"] = n["server"]
+                
+            query_str = urllib.parse.urlencode(query_map)
+            # 彻底修复多行文本拼接的括号与引号闭合缺陷
+            vless_link = f"vless://{n['uuid']}@{n['server']}:{n['port']}?{query_str}#{urllib.parse.quote(n['name'])}"
+            raw_links.append(vless_link)
+            
+    plain_nodes_text = "\n".join(raw_links)
+    node_plain_path = os.path.join(output_dir, "nodes_plain.txt")
+    with open(node_plain_path, "w", encoding="utf-8") as f:
+        f.write(plain_nodes_text)
+
+    node_txt_path = os.path.join(output_dir, "node.txt")
+    b64_subscribe = base64.b64encode(plain_nodes_text.encode("utf-8")).decode("utf-8")
+    with open(node_txt_
