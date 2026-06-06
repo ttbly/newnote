@@ -1,0 +1,45 @@
+name: Update
+
+on:
+  watch:
+    types: [started]
+  schedule:
+    # 每天凌晨 0:00 和 中午 12:00 自动全网刷新清洗，保证天天有最新活节点
+    - cron: '0 0,12 * * *'
+  workflow_dispatch: # 允许你在 Actions 页面随时手动点击运行
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  Update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 赋予 Action 写入并提交代码的权限
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.2.2
+
+    - name: Setup Python
+      uses: actions/setup-python@v5.3.0
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: ⚡ 运行 AI 专属全局节点聚合清洗引擎
+      run: |
+        python execute.py
+
+    - name: Git push
+      run: |
+        git config --local user.name "GitHub Action"
+        git config --local user.email "action@github.com"
+        git add .
+        # 只有在有文件变动时才提交，防止空提交报错
+        git diff --quiet && git diff --staged --quiet || git commit -m "🤖 自动构建：更新最新 OpenAI/Claude 专属可用节点池"
+        git push
