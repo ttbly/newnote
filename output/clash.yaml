@@ -16,7 +16,6 @@ proxy-groups:
   type: select
   proxies:
   - 🔮 自动选择
-  - 🤖 OpenAI/Claude 专用
   - 🌐 🚀 节点池当前无可用活节点-请等待下一次构建
 - name: 🔮 自动选择
   type: url-test
@@ -25,24 +24,6 @@ proxy-groups:
   tolerance: 50
   proxies:
   - 🌐 🚀 节点池当前无可用活节点-请等待下一次构建
-- name: 🤖 OpenAI/Claude 专用
-  type: select
-  proxies:
-  - 🌐 🚀 节点池当前无可用活节点-请等待下一次构建
-  - 🚀 🛑 代理节点全局代理
-- name: ⚓ 漏网之鱼(国内直连)
-  type: select
-  proxies:
-  - DIRECT
-  - 🚀 🛑 代理节点全局代理
 rules:
-- DOMAIN-SUFFIX,openai.com,🤖 OpenAI/Claude 专用
-- DOMAIN-SUFFIX,chatgpt.com,🤖 OpenAI/Claude 专用
-- DOMAIN-SUFFIX,oaistatic.com,🤖 OpenAI/Claude 专用
-- DOMAIN-SUFFIX,oaiusercontent.com,🤖 OpenAI/Claude 专用
-- DOMAIN-KEYWORD,openai,🤖 OpenAI/Claude 专用
-- DOMAIN-SUFFIX,anthropic.com,🤖 OpenAI/Claude 专用
-- DOMAIN-SUFFIX,claude.ai,🤖 OpenAI/Claude 专用
-- DOMAIN-KEYWORD,claude,🤖 OpenAI/Claude 专用
 - GEOIP,CN,DIRECT
-- MATCH,⚓ 漏网之鱼(国内直连)
+- MATCH,🚀 🛑 代理节点全局代理
