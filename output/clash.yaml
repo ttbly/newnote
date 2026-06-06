@@ -5,7 +5,7 @@ mode: rule
 log-level: info
 mixed-port: 7893
 proxies:
-- name: 🌐 🚀 节点池无可用活节点
+- name: 🌐 🚀 节点池当前无可用活节点-请等待下一次构建
   type: ss
   server: 127.0.0.1
   port: 8388
@@ -17,18 +17,18 @@ proxy-groups:
   proxies:
   - 🔮 自动选择
   - 🤖 OpenAI/Claude 专用
-  - 🌐 🚀 节点池无可用活节点
+  - 🌐 🚀 节点池当前无可用活节点-请等待下一次构建
 - name: 🔮 自动选择
   type: url-test
   url: http://www.gstatic.com/generate_204
   interval: 300
   tolerance: 50
   proxies:
-  - 🌐 🚀 节点池无可用活节点
+  - 🌐 🚀 节点池当前无可用活节点-请等待下一次构建
 - name: 🤖 OpenAI/Claude 专用
   type: select
   proxies:
-  - 🌐 🚀 节点池无可用活节点
+  - 🌐 🚀 节点池当前无可用活节点-请等待下一次构建
   - 🚀 🛑 代理节点全局代理
 - name: ⚓ 漏网之鱼(国内直连)
   type: select
