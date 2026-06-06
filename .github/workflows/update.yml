@@ -4,9 +4,9 @@ on:
   watch:
     types: [started]
   schedule:
-    # 每天凌晨 0:00 和 中午 12:00 各自动全网刷新清洗一次，保证天天有最新活节点
-    - cron: '0 0,12 * * *'
-  workflow_dispatch: # 允许你在 Actions 页面随时手动点击运行
+    # 每 4 小时全网清洗一次，确保存活率，彻底告别 -1
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
 
 env:
   TZ: Asia/Shanghai
@@ -15,7 +15,7 @@ jobs:
   Update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 赋予 Action 写入并提交代码的权限
+      contents: write
 
     steps:
     - name: Checkout
@@ -29,9 +29,9 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        pip install -r requirements.txt
+        pip install requests pyyaml
 
-    - name: ⚡ 运行 AI 专属全局节点聚合清洗引擎
+    - name: ⚡ 运行高存活率节点聚合清洗引擎
       run: |
         python execute.py
 
@@ -40,6 +40,5 @@ jobs:
         git config --local user.name "GitHub Action"
         git config --local user.email "action@github.com"
         git add .
-        # 只有在有文件变动时才提交，防止空提交报错
-        git diff --quiet && git diff --staged --quiet || git commit -m "🤖 自动构建：同步输出明文节点文件"
+        git diff --quiet && git diff --staged --quiet || git commit -m "🤖 自动构建：更换高质量活节点源，优化 V2RayN 兼容配置"
         git push
