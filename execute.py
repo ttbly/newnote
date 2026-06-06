@@ -24,7 +24,6 @@ def parse_v2ray_url(url):
             j = json.loads(dec_json)
             
             server = j.get("add") or j.get("host")
-            # 如果抓到了嵌套的 vless 字符串，拒绝走 vmess 解析，防止生成畸形链接
             if not server or "vless://" in str(server):
                 return None
                 
@@ -45,7 +44,6 @@ def parse_v2ray_url(url):
             
         # ---- VLESS 协议解析 ----
         elif url.startswith("vless://"):
-            # 格式: vless://uuid@server:port?query#name
             if "#" in url:
                 url, name_part = url.split("#", 1)
                 name = urllib.parse.unquote(name_part)
@@ -56,7 +54,6 @@ def parse_v2ray_url(url):
             if "@" in rest:
                 uuid, server_part = rest.split("@", 1)
                 
-                # 拆分服务器、端口和参数
                 if "?" in server_part:
                     server_port, query_part = server_part.split("?", 1)
                     query_params = dict(urllib.parse.parse_qsl(query_part))
@@ -72,12 +69,15 @@ def parse_v2ray_url(url):
                     "server": server.strip(),
                     "port": int(port),
                     "uuid": uuid.strip(),
-                    "tls": True if query_params.get("security") in ["tls", "xtls"] else False,
+                    "tls": True if query_params.get("security") in ["tls", "xtls", "reality"] else False,
                     "network": query_params.get("type", "tcp"),
                     "ws-opts": {"path": query_params.get("path", "")} if query_params.get("type") == "ws" else None,
                     "sni": query_params.get("sni", ""),
                     "host": query_params.get("host", ""),
-                    "flow": query_params.get("flow", "")
+                    "flow": query_params.get("flow", ""),
+                    "pbk": query_params.get("pbk", ""),
+                    "sid": query_params.get("sid", ""),
+                    "security": query_params.get("security", "none")
                 }
 
         # ---- Shadowsocks 协议解析 ----
@@ -163,7 +163,7 @@ def unique_and_clean_nodes(raw_nodes):
     return cleaned_nodes
 
 # ========================================================
-# 3. Clash 配置文件生成 (全面兼容新协议属性)
+# 3. Clash 配置文件生成 (分流 AI 规则)
 # ========================================================
 def generate_clash_yaml(nodes, output_path):
     all_node_names = [node["name"] for node in nodes]
@@ -227,7 +227,7 @@ def generate_clash_yaml(nodes, output_path):
         yaml.dump(clash_config, f, allow_unicode=True, sort_keys=False)
 
 # ========================================================
-# 4. 高鲜度动态节点抓取源
+# 4. 高频自动化测速过滤源 (解决全网 -1 核心痛点)
 # ========================================================
 def fetch_url(url):
     local_nodes = []
@@ -244,10 +244,8 @@ def fetch_url(url):
                 except Exception:
                     break
             
-            # 先行提取出所有标准的链接
             raw_links = re.findall(r'(vmess://[^\s]+|vless://[^\s]+|ss://[^\s]+)', content)
             if not raw_links:
-                # 兜底：按行切分
                 raw_links = re.split(r'[\n\r]+', content)
 
             for line in raw_links:
@@ -261,110 +259,9 @@ def fetch_url(url):
     return local_nodes
 
 def fetch_all_nodes():
-    print("🌐 开始从高时效、高鲜度动态活节点源拉取节点...")
+    print("🌐 开始从【高频测速清洗池】拉取动态存活节点...")
+    # 替换为全网机器人真实连通、定时过滤死节点的优质源
     target_urls = [
-        "https://raw.githubusercontent.com/Yuandong666/v2ray-node/main/v2ray.txt",
-        "https://raw.githubusercontent.com/JackZeng9/free-nodes/main/sub/sub_merge.txt",
-        "https://raw.githubusercontent.com/sssub/sub/master/v2ray",
-        "https://raw.githubusercontent.com/vless-node/vless/main/sub/sub_merge.txt"
-    ]
-    
-    all_nodes = []
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        results = executor.map(fetch_url, target_urls)
-        for nodes in results:
-            all_nodes.extend(nodes)
-            
-    print(f"📥 动态抓取洗炼完毕，基础池捕获 {len(all_nodes)} 个节点")
-    return all_nodes
-
-def main():
-    print("🎬 启动全新重构的 多协议高兼容清洗分流引擎...")
-    output_dir = "output"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    raw_nodes = fetch_all_nodes()
-    cleaned_nodes = unique_and_clean_nodes(raw_nodes)
-
-    if not cleaned_nodes:
-        cleaned_nodes = [{
-            "name": "🌐 🚀 节点池无可用活节点",
-            "type": "ss",
-            "server": "127.0.0.1",
-            "port": 8388,
-            "cipher": "aes-256-gcm",
-            "password": "test"
-        }]
-
-    # 3. 输出 Clash 格式 YAML
-    generate_clash_yaml(cleaned_nodes, os.path.join(output_dir, "clash.yaml"))
-    
-    # 4. 逆向重构 V2RayN 严苛的标准协议链接
-    raw_links = []
-    for n in cleaned_nodes:
-        if n["type"] == "ss":
-            cred = base64.b64encode(f"{n['cipher']}:{n['password']}".encode("utf-8")).decode("utf-8")
-            raw_links.append(f"ss://{cred}@{n['server']}:{n['port']}#{urllib.parse.quote(n['name'])}")
-            
-        elif n["type"] == "vmess":
-            v_json = {
-                "v": "2", 
-                "ps": n["name"], 
-                "add": n["server"], 
-                "port": str(n["port"]),
-                "id": n["uuid"], 
-                "aid": str(n["alterId"]), 
-                "scy": "auto",
-                "net": n["network"], 
-                "type": "none", 
-                "host": n.get("host", ""), 
-                "path": n.get("ws-opts", {}).get("path", "") if n.get("ws-opts") else "",
-                "tls": "tls" if n["tls"] else "",
-                "sni": n.get("sni", n["server"]),
-                "alpn": "",
-                "fp": "chrome",
-                "allowInsecure": 1
-            }
-            v_b64 = base64.b64encode(json.dumps(v_json, ensure_ascii=False).encode("utf-8")).decode("utf-8")
-            raw_links.append(f"vmess://{v_b64}")
-            
-        elif n["type"] == "vless":
-            # 严格规范 VLESS 的标准化 URL 拼接参数，注入安全防护与混淆指纹
-            query_map = {
-                "security": "tls" if n["tls"] else "none",
-                "type": n["network"],
-                "headerType": "none",
-                "fp": "chrome",
-                "allowInsecure": "1"
-            }
-            if n.get("ws-opts") and n["ws-opts"].get("path"):
-                query_map["path"] = n["ws-opts"]["path"]
-            if n.get("host"):
-                query_map["host"] = n["host"]
-            if n.get("sni"):
-                query_map["sni"] = n["sni"]
-            elif n["tls"]:
-                query_map["sni"] = n["server"]
-                
-            query_str = urllib.parse.urlencode(query_map)
-            vless_link = f"vless://{n['uuid']}@{n['server']}:{n['port']}?{query_str}#{urllib.parse.quote(n['name'])}"
-            raw_links.append(vless_link)
-            
-    # 输出明文订阅文件
-    plain_nodes_text = "\n".join(raw_links)
-    node_plain_path = os.path.join(output_dir, "nodes_plain.txt")
-    with open(node_plain_path, "w", encoding="utf-8") as f:
-        f.write(plain_nodes_text)
-    print(f"📝 高鲜度明文文件已更新至 [{node_plain_path}]")
-
-    # 输出 V2RayN 标准 Base64 加密订阅
-    node_txt_path = os.path.join(output_dir, "node.txt")
-    b64_subscribe = base64.b64encode(plain_nodes_text.encode("utf-8")).decode("utf-8")
-    with open(node_txt_path, "w", encoding="utf-8") as f:
-        f.write(b64_subscribe)
-        
-    print(f"✅ 全新三合一优化版大功告成！成果已输出至 [{output_dir}] 目录。")
-
-if __name__ == "__main__":
-    main()
+        "https://raw.githubusercontent.com/w1770946466/Auto_Proxy/main/Long_term_subscription_num/v2ray.txt",
+        "https://raw.githubusercontent.com/zk666222/shadowsocks/master/v2ray.txt",
+        "
