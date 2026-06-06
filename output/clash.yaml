@@ -5,7 +5,7 @@ mode: rule
 log-level: info
 mixed-port: 7893
 proxies:
-- name: 🌐 🚀 节点初始化失败-请确认网络并重新运行 Actions
+- name: 🌐 🚀 节点池无可用活节点
   type: ss
   server: 127.0.0.1
   port: 8388
@@ -17,18 +17,18 @@ proxy-groups:
   proxies:
   - 🔮 自动选择
   - 🤖 OpenAI/Claude 专用
-  - 🌐 🚀 节点初始化失败-请确认网络并重新运行 Actions
+  - 🌐 🚀 节点池无可用活节点
 - name: 🔮 自动选择
   type: url-test
   url: http://www.gstatic.com/generate_204
   interval: 300
   tolerance: 50
   proxies:
-  - 🌐 🚀 节点初始化失败-请确认网络并重新运行 Actions
+  - 🌐 🚀 节点池无可用活节点
 - name: 🤖 OpenAI/Claude 专用
   type: select
   proxies:
-  - 🌐 🚀 节点初始化失败-请确认网络并重新运行 Actions
+  - 🌐 🚀 节点池无可用活节点
   - 🚀 🛑 代理节点全局代理
 - name: ⚓ 漏网之鱼(国内直连)
   type: select
