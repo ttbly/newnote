@@ -243,8 +243,7 @@ def main():
     # 3. 输出高效 Clash 策略组 YAML
     generate_clash_yaml(cleaned_nodes, os.path.join(output_dir, "clash.yaml"))
     
-    # 4. 逆向编码，输出通用客户端 Base64 订阅文本
-    node_txt_path = os.path.join(output_dir, "node.txt")
+    # 4. 逆向编码节点链接
     raw_links = []
     for n in cleaned_nodes:
         if n["type"] == "ss":
@@ -252,19 +251,40 @@ def main():
             raw_links.append(f"ss://{cred}@{n['server']}:{n['port']}#{urllib.parse.quote(n['name'])}")
         elif n["type"] == "vmess":
             v_json = {
-                "v": "2", "ps": n["name"], "add": n["server"], "port": str(n["port"]),
-                "id": n["uuid"], "aid": str(n["alterId"]), "scy": "auto",
-                "net": n["network"], "type": "none", "host": "", "path": n.get("ws-opts", {}).get("path", "") if n.get("ws-opts") else "",
-                "tls": "tls" if n["tls"] else ""
+                "v": "2", 
+                "ps": n["name"], 
+                "add": n["server"], 
+                "port": str(n["port"]),
+                "id": n["uuid"], 
+                "aid": str(n["alterId"]), 
+                "scy": "auto",
+                "net": n["network"], 
+                "type": "none", 
+                "host": "", 
+                "path": n.get("ws-opts", {}).get("path", "") if n.get("ws-opts") else "",
+                "tls": "tls" if n["tls"] else "",
+                "sni": "",
+                "alpn": "",
+                "fp": "chrome",         # 模拟浏览器指纹，绕过 Cloudflare 阻断
+                "allowInsecure": "1"     # 强制放行不合规证书，解决 V2RayN 全部显示 -1 的问题
             }
             v_b64 = base64.b64encode(json.dumps(v_json).encode("utf-8")).decode("utf-8")
             raw_links.append(f"vmess://{v_b64}")
             
-    b64_subscribe = base64.b64encode("\n".join(raw_links).encode("utf-8")).decode("utf-8")
+    # 🎯【新增输出】：直接输出未经过 base64 编码的明文节点文件
+    plain_nodes_text = "\n".join(raw_links)
+    node_plain_path = os.path.join(output_dir, "nodes_plain.txt")
+    with open(node_plain_path, "w", encoding="utf-8") as f:
+        f.write(plain_nodes_text)
+    print(f"📝 明文节点文件已成功生成至 [{node_plain_path}]")
+
+    # 5. 输出标准的 Base64 加密订阅文本 (给 V2RayN 使用)
+    node_txt_path = os.path.join(output_dir, "node.txt")
+    b64_subscribe = base64.b64encode(plain_nodes_text.encode("utf-8")).decode("utf-8")
     with open(node_txt_path, "w", encoding="utf-8") as f:
         f.write(b64_subscribe)
         
-    print(f"✅ 独立引擎大获全胜！成果已成功输出至 [{output_dir}] 文件夹。")
+    print(f"✅ 独立引擎大获全胜！所有成果已输出至 [{output_dir}] 文件夹。")
 
 if __name__ == "__main__":
     main()
