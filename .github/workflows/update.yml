@@ -4,7 +4,7 @@ on:
   watch:
     types: [started]
   schedule:
-    # 每天凌晨 0:00 和 中午 12:00 自动全网刷新清洗，保证天天有最新活节点
+    # 每天凌晨 0:00 和 中午 12:00 各自动全网刷新清洗一次，保证天天有最新活节点
     - cron: '0 0,12 * * *'
   workflow_dispatch: # 允许你在 Actions 页面随时手动点击运行
 
@@ -41,5 +41,5 @@ jobs:
         git config --local user.email "action@github.com"
         git add .
         # 只有在有文件变动时才提交，防止空提交报错
-        git diff --quiet && git diff --staged --quiet || git commit -m "🤖 自动构建：更新最新 OpenAI/Claude 专属可用节点池"
+        git diff --quiet && git diff --staged --quiet || git commit -m "🤖 自动构建：100%自主清洗，修复TLS证书验证机制"
         git push
